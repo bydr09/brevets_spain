@@ -8,6 +8,7 @@ import re
 import unicodedata
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import pdfplumber
 
@@ -83,6 +84,19 @@ def canonical_email(raw_value: str) -> str | None:
     return None
 
 
+def canonical_url(raw_value: str) -> str | None:
+    value = (raw_value or "").strip()
+    try:
+        parsed = urlsplit(value)
+    except ValueError:
+        return None
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        return None
+    if parsed.username or parsed.password:
+        return None
+    return value
+
+
 def canonical_province(raw_value: str) -> str | None:
     value = normalized(raw_value)
     for prefix, province in PROVINCE_ALIASES.items():
@@ -155,11 +169,21 @@ def extract_events(pdf_path: Path, existing_path: Path, source_checked_at: str) 
                     and annotation.get("uri")
                 ]
                 organizer_url = next(
-                    (annotation["uri"] for annotation in row_annotations if annotation["x0"] < 200),
+                    (
+                        url
+                        for annotation in row_annotations
+                        if annotation["x0"] < 200
+                        and (url := canonical_url(annotation["uri"]))
+                    ),
                     None,
                 )
                 event_url = next(
-                    (annotation["uri"] for annotation in row_annotations if annotation["x0"] >= 200),
+                    (
+                        url
+                        for annotation in row_annotations
+                        if annotation["x0"] >= 200
+                        and (url := canonical_url(annotation["uri"]))
+                    ),
                     None,
                 )
 

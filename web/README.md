@@ -11,7 +11,7 @@ Desde PowerShell:
 .\serve-local.ps1
 ```
 
-Después, abre `http://localhost:5173`.
+Después, abre `http://127.0.0.1:5173`.
 
 También puedes utilizar cualquier servidor de archivos estáticos. No abras
 `index.html` directamente porque el navegador puede bloquear la carga del JSON

@@ -1,0 +1,2 @@
+# Used only to regenerate the static calendar from the official source PDF.
+pdfplumber==0.11.11

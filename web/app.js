@@ -67,6 +67,17 @@ function addOption(select, value, text) {
   select.append(option);
 }
 
+function safeExternalUrl(value) {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    if (!["https:", "http:"].includes(url.protocol) || url.username || url.password) return null;
+    return url.href;
+  } catch {
+    return null;
+  }
+}
+
 function fillControls() {
   unique(state.events.map((event) => event.distance_km)).sort((a, b) => a - b)
     .forEach((distance) => addOption(el.distance, distance, `${Number(distance).toLocaleString("es-ES")} km`));
@@ -125,7 +136,9 @@ function applyFilters() {
 }
 
 function clubWebsite(event) {
-  return event.organizer_url || event.detail_source_url || event.event_url || null;
+  return safeExternalUrl(event.organizer_url)
+    || safeExternalUrl(event.detail_source_url)
+    || safeExternalUrl(event.event_url);
 }
 
 function renderTable() {

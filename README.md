@@ -22,7 +22,7 @@ verificación en cada registro.
 
 ```powershell
 cd web
-.\serve-local.ps1     # http://localhost:5173
+.\serve-local.ps1     # http://127.0.0.1:5173
 ```
 
 No abras `web/index.html` con doble clic: sobre `file://` el navegador bloquea la
@@ -30,14 +30,17 @@ carga del JSON local.
 
 ## Regenerar los datos
 
-Requiere Python 3 y `pdfplumber`. Ejecutar **desde la raíz del proyecto**, porque el
+Requiere Python 3. Ejecutar **desde la raíz del proyecto**, porque el
 script resuelve rutas relativas al directorio actual:
 
 ```powershell
-pip install pdfplumber
+python -m pip install -r requirements.txt
 python scripts\import_official_calendar.py sources\calendario_brevets_2027_oficial.pdf data\brevets_2027.json
 copy data\brevets_2027.json web\data\brevets_2027.json
 ```
+
+El importador está pensado para el PDF oficial incluido en `sources/`. No ejecutes
+archivos PDF de procedencia desconocida fuera de un entorno aislado.
 
 El importador falla a propósito si no obtiene exactamente 159 eventos de 2027 o si
 genera identificadores duplicados. Conserva los campos enriquecidos del JSON previo
@@ -65,4 +68,3 @@ mediante `--existing` (por defecto `data/brevets_2027.json`).
 - Las dos copias de `brevets_2027.json` no se sincronizan automáticamente.
 - El **Simulador de Brevets** descrito en `docs/funcionalidades_ciclismo.md` no está
   implementado en este repositorio.
-- `.gitignore` no excluye `__pycache__/`; conviene añadirlo antes de publicar.
