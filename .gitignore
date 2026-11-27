@@ -1,0 +1,24 @@
+# Local configuration and credentials
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.cer
+credentials*
+secrets*
+
+# Development output
+node_modules/
+dist/
+build/
+coverage/
+tmp/
+*.log
+
+# Local operating-system files
+.DS_Store
+Thumbs.db
+Desktop.ini

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#12372a" />
+    <meta name="description" content="Calendario de brevets de 2027 en España" />
+    <title>Brevets España 2027</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='29' fill='%2312372a'/%3E%3Cpath d='M17 38h30M22 26l10 12 10-12' fill='none' stroke='%23efc76a' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script>
+    <script src="./app.js" type="module"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <a class="brand" href="#" aria-label="Brevets España 2027" data-go-view="home">
+          <span class="brand-mark">BRM</span>
+          <span><strong>Brevets España</strong><small>Calendario 2027</small></span>
+        </a>
+        <div class="stats" aria-label="Resumen del calendario">
+          <div><strong id="event-total">159</strong><span>Brevets</span></div>
+          <div><strong id="club-total">28</strong><span>Clubes</span></div>
+          <div><strong id="month-total">10</strong><span>Meses</span></div>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <div class="toolbar">
+          <div class="view-switcher" aria-label="Cambiar vista">
+            <button class="view-button active" type="button" data-view="home" aria-pressed="true"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 11 9-8 9 8M5 10v11h14V10M9 21v-7h6v7" /></svg>Inicio</button>
+            <button class="view-button" type="button" data-view="table" aria-pressed="false"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" /></svg>Listado</button>
+            <button class="view-button" type="button" data-view="calendar" aria-pressed="false"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 3v3m12-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1Z" /></svg>Calendario</button>
+            <button class="view-button" type="button" data-view="map" aria-pressed="false"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Zm6-3v15m6-12v15" /></svg>Mapa</button>
+            <button class="view-button" type="button" data-view="clubs" aria-pressed="false"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M16 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m7-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm13 10v-2a4 4 0 0 0-3-3.87M16 2.13a4 4 0 0 1 0 7.75" /></svg>Clubes</button>
+            <button class="view-button" type="button" data-view="territories" aria-pressed="false"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 21s7-5.3 7-12a7 7 0 1 0-14 0c0 6.7 7 12 7 12Zm0-9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" /></svg>Territorios</button>
+            <button class="view-button" type="button" data-view="guide" aria-pressed="false"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 4h6a2 2 0 0 1 2 2v14a3 3 0 0 0-3-3H4V4Zm16 0h-6a2 2 0 0 0-2 2v14a3 3 0 0 1 3-3h5V4Z" /></svg>Guía</button>
+          </div>
+
+          <form class="filters" id="filters">
+            <label class="search-field"><span class="sr-only">Buscar</span><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m21 21-4.5-4.5m2.5-5a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z" /></svg><input id="search" type="search" placeholder="Buscar club o población" autocomplete="off" /></label>
+            <label class="event-only-filter"><span class="sr-only">Distancia</span><select id="distance"><option value="">Todas las distancias</option></select></label>
+            <label class="event-only-filter compact-filter"><span class="sr-only">Mes</span><select id="month"><option value="">Todo el año</option></select></label>
+            <label class="event-only-filter territory-filter"><span class="sr-only">Territorio</span><select id="territory"><option value="">Toda España</option></select></label>
+            <label class="event-only-filter organizer-filter"><span class="sr-only">Club</span><select id="organizer"><option value="">Todos los clubes</option></select></label>
+            <button class="clear-button" id="clear-filters" type="reset">Limpiar</button>
+          </form>
+          <p class="result-count" id="result-count" aria-live="polite">Cargando…</p>
+        </div>
+
+        <section class="view-panel home-panel active" id="home-view" aria-label="Portada">
+          <div class="home-scroll">
+            <div class="home-hero">
+              <div><p class="eyebrow">Calendario oficial · España · 2027</p><h1>Tu próxima larga distancia empieza aquí.</h1><p>Encuentra, compara y prepara brevets homologados de 200 a 1.000 kilómetros.</p></div>
+              <form class="quick-search" id="quick-search-form"><label for="quick-search">Busca por localidad, provincia o club</label><div><input id="quick-search" type="search" placeholder="Ej. Madrid, Altea, Randonneurs…" /><button type="submit">Buscar brevets</button></div></form>
+            </div>
+            <div class="home-section-heading"><div><p class="eyebrow">En el horizonte</p><h2>Próximos brevets</h2></div><button class="text-action" type="button" data-go-view="table">Ver calendario completo →</button></div>
+            <div class="upcoming-grid" id="upcoming-grid"></div>
+            <div class="home-shortcuts">
+              <button type="button" data-go-view="map"><strong>Explorar el mapa</strong><span>Descubre dónde se concentra la temporada.</span></button>
+              <button type="button" data-go-view="territories"><strong>Ver por territorio</strong><span>Compara comunidades, clubes y distancias.</span></button>
+              <button type="button" data-go-view="guide"><strong>Mi primer brevet</strong><span>Lo esencial antes de tomar la salida.</span></button>
+            </div>
+          </div>
+        </section>
+
+        <section class="view-panel table-panel" id="table-view" aria-label="Listado de brevets" hidden>
+          <div class="table-scroll"><table class="event-table"><thead><tr><th scope="col">Club organizador</th><th scope="col">Fecha</th><th scope="col">Distancia</th><th scope="col">Población</th><th scope="col">Web del club</th></tr></thead><tbody id="event-table-body"></tbody></table><div class="empty-state" id="table-empty" hidden>No hay brevets con estos filtros.</div></div>
+        </section>
+
+        <section class="view-panel calendar-panel" id="calendar-view" aria-label="Calendario mensual" hidden>
+          <div class="calendar-toolbar"><button id="previous-month" type="button" aria-label="Mes anterior">←</button><label><span class="sr-only">Mes del calendario</span><select id="calendar-month"></select></label><button id="next-month" type="button" aria-label="Mes siguiente">→</button><div class="calendar-legend" aria-label="Código de colores"><span><i class="d200"></i>200</span><span><i class="d300"></i>300</span><span><i class="d400"></i>400</span><span><i class="d600"></i>600</span><span class="extreme-legend"><i></i>600E · +8.000 D+</span><span><i class="d1000"></i>1.000 km</span></div></div>
+          <div class="calendar-scroll"><div class="weekdays" aria-hidden="true"><span>Lunes</span><span>Martes</span><span>Miércoles</span><span>Jueves</span><span>Viernes</span><span>Sábado</span><span>Domingo</span></div><div class="calendar-grid" id="calendar-grid"></div></div>
+        </section>
+
+        <section class="view-panel map-panel" id="map-view" aria-label="Mapa de brevets" hidden>
+          <div class="map-layout"><div id="brevet-map" aria-label="Mapa con los brevets agrupados por comunidad autónoma"></div><aside class="map-summary"><p class="eyebrow">Mapa territorial</p><h2>Brevets por comunidad</h2><p>Los puntos representan el conjunto de salidas de cada comunidad, no una salida exacta.</p><div id="map-territory-list"></div><small>Cartografía © OpenStreetMap contributors.</small></aside></div>
+        </section>
+
+        <section class="view-panel clubs-panel" id="clubs-view" aria-label="Clubes organizadores" hidden>
+          <div class="cards-scroll"><div class="section-intro"><p class="eyebrow">Organizadores</p><h2>Clubes randonneurs</h2><p>Calendario, distancias y localidades de salida de cada organizador.</p></div><div class="club-grid" id="club-grid"></div><div class="empty-state" id="clubs-empty" hidden>No hay clubes con esta búsqueda.</div></div>
+        </section>
+
+        <section class="view-panel territories-panel" id="territories-view" aria-label="Brevets por comunidad autónoma" hidden>
+          <div class="cards-scroll"><div class="section-intro"><p class="eyebrow">Toda España</p><h2>Brevets por territorio</h2><p>Una lectura rápida de la temporada por comunidad autónoma.</p></div><div class="territory-grid" id="territory-grid"></div></div>
+        </section>
+
+        <section class="view-panel guide-panel" id="guide-view" aria-label="Guía para empezar en los brevets" hidden>
+          <div class="guide-scroll"><header class="guide-hero"><p class="eyebrow">Guía breve</p><h1>Tu primer brevet, sin misterio.</h1><p>Un brevet es una marcha ciclista de larga distancia, no competitiva y con controles que debes completar dentro de un tiempo máximo.</p></header>
+            <div class="guide-grid"><article><span>01</span><h2>Antes de apuntarte</h2><p>Empieza por 200 km, revisa el reglamento del organizador y confirma recorrido, horario, luces y documentación exigida.</p></article><article><span>02</span><h2>Durante la ruta</h2><p>Gestiona el esfuerzo, valida cada control y conserva margen para averías, comida y cambios de tiempo.</p></article><article><span>03</span><h2>Al terminar</h2><p>Entrega la tarjeta o prueba de paso según indique la organización. La homologación llega después de revisar el recorrido.</p></article></div>
+            <section class="guide-block"><h2>Distancias habituales</h2><div class="distance-guide"><div><b>200</b><span>La puerta de entrada</span></div><div><b>300</b><span>Más horas y gestión</span></div><div><b>400</b><span>Noche casi segura</span></div><div><b>600</b><span>Sueño y estrategia</span></div><div><b>1.000</b><span>Ultradistancia</span></div></div></section>
+            <section class="guide-block rules-callout"><div><p class="eyebrow">Documento de referencia</p><h2>Reglamento BRM para participantes</h2><p>La información del organizador manda en cada prueba. Para las reglas generales, consulta siempre la edición oficial del Audax Club Parisien.</p></div><a href="https://www.audax-club-parisien.com/wp-content/uploads/2024/01/Reglement-participant-2024.pdf" target="_blank" rel="noopener noreferrer">Abrir reglamento oficial ↗</a></section>
+            <section class="guide-block faq"><h2>Preguntas frecuentes</h2><details><summary>¿Es una carrera?</summary><p>No. El objetivo es completar el recorrido dentro del tiempo establecido, con autonomía y sin clasificación por velocidad.</p></details><details><summary>¿Qué es un control?</summary><p>Un punto del recorrido donde debes acreditar el paso siguiendo el método indicado por el organizador.</p></details><details><summary>¿El calendario garantiza que nada cambiará?</summary><p>No. Comprueba siempre la web del club antes de inscribirte o desplazarte.</p></details><details><summary>¿Dónde puedo empezar a informarme?</summary><p>Además del reglamento oficial, puedes consultar la introducción <a href="https://www.audax.uk/about-audax/new-to-audax" target="_blank" rel="noopener noreferrer">New to Audax</a>.</p></details></section>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
