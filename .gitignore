@@ -12,6 +12,7 @@ secrets*
 
 # Development output
 node_modules/
+__pycache__/
 dist/
 build/
 coverage/

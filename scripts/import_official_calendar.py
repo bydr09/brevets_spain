@@ -59,6 +59,11 @@ COMMUNITY_BY_PROVINCE = {
     "Zaragoza": "Aragón",
 }
 
+EMAIL_CORRECTIONS = {
+    # The official calendar omits the public domain suffix for this address.
+    "info@mallorcaultracycling": "info@mallorcaultracycling.com",
+}
+
 
 def normalized(value: str) -> str:
     value = unicodedata.normalize("NFKD", value or "")
@@ -68,6 +73,14 @@ def normalized(value: str) -> str:
 def slug(value: str) -> str:
     value = normalized(value)
     return re.sub(r"[^a-z0-9]+", "-", value).strip("-")
+
+
+def canonical_email(raw_value: str) -> str | None:
+    email = re.sub(r"\s+", "", raw_value or "").lower()
+    email = EMAIL_CORRECTIONS.get(email, email)
+    if re.fullmatch(r"[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}", email):
+        return email
+    return None
 
 
 def canonical_province(raw_value: str) -> str | None:
@@ -110,7 +123,7 @@ def extract_events(pdf_path: Path, existing_path: Path, source_checked_at: str) 
                 if not row or len(row) < 9:
                     continue
 
-                club, acp_code, ride_organizer, _organizer_email, distance_label, date_text, elevation, extreme, locality = [
+                club, acp_code, ride_organizer, organizer_email_raw, distance_label, date_text, elevation, extreme, locality = [
                     (cell or "").strip() for cell in row[:9]
                 ]
                 if not re.fullmatch(r"\d{2}/\d{2}/\d{4}", date_text):
@@ -124,6 +137,7 @@ def extract_events(pdf_path: Path, existing_path: Path, source_checked_at: str) 
                 if not distance_match:
                     continue
                 distance_km = int(distance_match.group(1))
+                organizer_email = canonical_email(organizer_email_raw)
 
                 y0, y1 = row_geometry.bbox[1], row_geometry.bbox[3]
                 province_text = " ".join(
@@ -169,6 +183,7 @@ def extract_events(pdf_path: Path, existing_path: Path, source_checked_at: str) 
                     "organizer": club,
                     "acp_code": acp_code,
                     "ride_organizer": ride_organizer,
+                    "organizer_email": organizer_email,
                     "elevation_m": int(elevation) if elevation.isdigit() else None,
                     "is_600_plus_8000m": extreme.upper() == "X" or distance_label.upper() == "600E",
                     "verification_status": "official_calendar",

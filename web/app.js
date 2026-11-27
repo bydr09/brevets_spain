@@ -3,23 +3,9 @@ const MONTH_NAMES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Jul
 const DATE_FORMAT = new Intl.DateTimeFormat("es-ES", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
 const SHORT_DATE_FORMAT = new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short", timeZone: "UTC" });
 const WEEKDAY_FORMAT = new Intl.DateTimeFormat("es-ES", { weekday: "long", timeZone: "UTC" });
-const COMMUNITY_CENTERS = {
-  "Andalucía": [37.45, -4.6],
-  "Aragón": [41.65, -0.9],
-  "Castilla y León": [41.65, -4.72],
-  "Castilla-La Mancha": [39.28, -3.1],
-  "Catalunya": [41.7, 1.7],
-  "Comunidad de Madrid": [40.42, -3.7],
-  "Comunidad Foral de Navarra": [42.7, -1.64],
-  "Comunitat Valenciana": [39.6, -0.5],
-  "Galicia": [42.75, -7.8],
-  "Illes Balears": [39.57, 2.65],
-  "Región de Murcia": [37.98, -1.13],
-};
-
 const state = {
-  events: [], filtered: [], clubs: [], filteredClubs: [], territories: [],
-  view: "home", month: 0, map: null, markerLayer: null,
+  events: [], filtered: [], clubs: [], filteredClubs: [],
+  view: "home", month: 0,
 };
 
 const el = {
@@ -34,11 +20,8 @@ const el = {
   tableEmpty: document.querySelector("#table-empty"),
   clubGrid: document.querySelector("#club-grid"),
   clubsEmpty: document.querySelector("#clubs-empty"),
-  territoryGrid: document.querySelector("#territory-grid"),
-  mapTerritoryList: document.querySelector("#map-territory-list"),
-  upcomingGrid: document.querySelector("#upcoming-grid"),
-  quickSearchForm: document.querySelector("#quick-search-form"),
-  quickSearch: document.querySelector("#quick-search"),
+  homeDateList: document.querySelector("#home-date-list"),
+  homeClubList: document.querySelector("#home-club-list"),
   workspace: document.querySelector(".workspace"),
   calendarGrid: document.querySelector("#calendar-grid"),
   calendarMonth: document.querySelector("#calendar-month"),
@@ -50,7 +33,7 @@ const el = {
 };
 
 const panels = Object.fromEntries(
-  ["home", "table", "calendar", "map", "clubs", "territories", "guide"]
+  ["home", "table", "calendar", "clubs"]
     .map((view) => [view, document.querySelector(`#${view}-view`)]),
 );
 
@@ -101,12 +84,15 @@ function aggregateClubs(events) {
   const clubs = new Map();
   for (const event of events) {
     if (!clubs.has(event.organizer)) {
-      clubs.set(event.organizer, { name: event.organizer, acpCodes: new Set(), locations: new Set(), distances: new Set(), events: [], website: null });
+      clubs.set(event.organizer, { name: event.organizer, acpCodes: new Set(), locations: new Set(), distances: new Set(), contacts: new Set(), emails: new Set(), events: [], website: null });
     }
     const club = clubs.get(event.organizer);
     if (event.acp_code) club.acpCodes.add(event.acp_code);
     club.locations.add(event.start_locality);
     club.distances.add(event.distance_km);
+    if (event.ride_organizer) club.contacts.add(event.ride_organizer);
+    const email = event.organizer_email || event.contact_email || event.email;
+    if (email) club.emails.add(email);
     club.events.push(event);
     club.website ||= event.organizer_url || event.detail_source_url || null;
   }
@@ -115,25 +101,10 @@ function aggregateClubs(events) {
     acpCodes: [...club.acpCodes].sort(),
     locations: [...club.locations].sort((a, b) => a.localeCompare(b, "es")),
     distances: [...club.distances].sort((a, b) => a - b),
+    contacts: [...club.contacts].sort((a, b) => a.localeCompare(b, "es")),
+    emails: [...club.emails].sort((a, b) => a.localeCompare(b, "es")),
     events: club.events.sort((a, b) => a.date.localeCompare(b.date)),
   })).sort((a, b) => a.name.localeCompare(b.name, "es"));
-}
-
-function aggregateTerritories(events) {
-  const territories = new Map();
-  for (const event of events) {
-    const name = event.autonomous_community;
-    if (!territories.has(name)) territories.set(name, { name, events: [], clubs: new Set(), places: new Set(), distances: new Set() });
-    const territory = territories.get(name);
-    territory.events.push(event);
-    territory.clubs.add(event.organizer);
-    territory.places.add(event.start_locality);
-    territory.distances.add(event.distance_km);
-  }
-  return [...territories.values()].map((territory) => ({
-    ...territory,
-    clubs: [...territory.clubs], places: [...territory.places], distances: [...territory.distances].sort((a, b) => a - b),
-  })).sort((a, b) => b.events.length - a.events.length || a.name.localeCompare(b.name, "es"));
 }
 
 function applyFilters() {
@@ -147,7 +118,7 @@ function applyFilters() {
       && (!el.organizer.value || event.organizer === el.organizer.value);
   });
   state.filteredClubs = state.clubs.filter((club) => !query || normalized([
-    club.name, ...club.acpCodes, ...club.locations,
+    club.name, ...club.acpCodes, ...club.locations, ...club.contacts, ...club.emails,
   ].join(" ")).includes(query));
   if (el.month.value) state.month = Number(el.month.value) - 1;
   render();
@@ -185,21 +156,32 @@ function renderTable() {
   el.tableEmpty.hidden = state.filtered.length !== 0;
 }
 
-function renderUpcoming() {
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  const upcoming = state.events.filter((event) => new Date(`${event.date}T00:00:00`) >= now).slice(0, 6);
-  const selected = upcoming.length ? upcoming : state.events.slice(0, 6);
-  const fragment = document.createDocumentFragment();
-  for (const event of selected) {
-    const card = document.createElement("article");
-    card.className = "upcoming-card";
-    const top = document.createElement("div");
-    top.append(makeText("span", "upcoming-date", SHORT_DATE_FORMAT.format(new Date(`${event.date}T00:00:00Z`))), makeText("span", `distance-badge ${distanceClass(event.distance_km)}`, `${event.distance_km} km`));
-    card.append(top, makeText("h3", "", event.start_locality), makeText("p", "", event.organizer), makeText("small", "", event.autonomous_community));
-    fragment.append(card);
+function renderHomeDirectories() {
+  const dateFragment = document.createDocumentFragment();
+  for (const event of state.events.slice(0, 4)) {
+    const row = document.createElement("div");
+    row.className = "directory-row date-row";
+    const date = makeText("time", "directory-date", SHORT_DATE_FORMAT.format(new Date(`${event.date}T00:00:00Z`)));
+    date.dateTime = event.date;
+    const detail = document.createElement("div");
+    detail.append(makeText("strong", "", event.start_locality), makeText("small", "", event.organizer));
+    row.append(date, detail, makeText("span", `directory-distance ${distanceClass(event.distance_km)}`, `${event.distance_km} km`));
+    dateFragment.append(row);
   }
-  el.upcomingGrid.replaceChildren(fragment);
+  el.homeDateList.replaceChildren(dateFragment);
+
+  const clubFragment = document.createDocumentFragment();
+  for (const club of state.clubs.slice(0, 4)) {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "directory-row club-row";
+    const detail = document.createElement("div");
+    detail.append(makeText("strong", "", club.name), makeText("small", "", `Próximo: ${SHORT_DATE_FORMAT.format(new Date(`${club.events[0].date}T00:00:00Z`))}`));
+    row.append(detail, makeText("span", "club-event-count", `${club.events.length} ${club.events.length === 1 ? "brevet" : "brevets"}`));
+    row.addEventListener("click", () => { el.organizer.value = club.name; applyFilters(); switchView("table"); });
+    clubFragment.append(row);
+  }
+  el.homeClubList.replaceChildren(clubFragment);
 }
 
 function renderClubs() {
@@ -212,6 +194,17 @@ function renderClubs() {
     card.append(heading);
     if (club.acpCodes.length) card.append(makeText("p", "club-code-line", `ACP ${club.acpCodes.join(" · ")}`));
     card.append(makeText("p", "club-meta", club.locations.join(" · ")));
+    if (club.contacts.length || club.emails.length) {
+      const contact = document.createElement("div");
+      contact.className = "club-contact";
+      if (club.contacts.length) contact.append(makeText("p", "", `${club.contacts.length === 1 ? "Responsable" : "Responsables"}: ${club.contacts.join(" · ")}`));
+      for (const email of club.emails) {
+        const link = makeText("a", "", email);
+        link.href = `mailto:${email}`;
+        contact.append(link);
+      }
+      card.append(contact);
+    }
     const distances = document.createElement("div");
     distances.className = "club-distances";
     club.distances.forEach((distance) => distances.append(makeText("span", distanceClass(distance), `${distance}`)));
@@ -228,19 +221,6 @@ function renderClubs() {
   }
   el.clubGrid.replaceChildren(fragment);
   el.clubsEmpty.hidden = state.filteredClubs.length !== 0;
-}
-
-function renderTerritories() {
-  const fragment = document.createDocumentFragment();
-  for (const territory of state.territories) {
-    const card = document.createElement("button");
-    card.type = "button";
-    card.className = "territory-card";
-    card.append(makeText("span", "territory-total", territory.events.length), makeText("h3", "", territory.name), makeText("p", "", `${territory.clubs.length} clubes · ${territory.places.length} localidades`), makeText("small", "", territory.distances.map((distance) => `${distance} km`).join(" · ")));
-    card.addEventListener("click", () => { el.territory.value = territory.name; applyFilters(); switchView("table"); });
-    fragment.append(card);
-  }
-  el.territoryGrid.replaceChildren(fragment);
 }
 
 function shortClub(name) {
@@ -287,52 +267,16 @@ function renderCalendar() {
   el.nextMonth.disabled = state.month === 11;
 }
 
-function initMap() {
-  if (state.map || !window.L) return;
-  state.map = window.L.map("brevet-map", { scrollWheelZoom: false }).setView([40.15, -3.8], 6);
-  window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "&copy; OpenStreetMap contributors" }).addTo(state.map);
-  state.markerLayer = window.L.layerGroup().addTo(state.map);
-}
-
-function renderMap() {
-  initMap();
-  const totals = aggregateTerritories(state.filtered);
-  const list = document.createDocumentFragment();
-  for (const territory of totals) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.append(makeText("span", "", territory.name), makeText("strong", "", territory.events.length));
-    button.addEventListener("click", () => { el.territory.value = territory.name; applyFilters(); switchView("table"); });
-    list.append(button);
-  }
-  el.mapTerritoryList.replaceChildren(list);
-  if (!state.map || !state.markerLayer) {
-    document.querySelector("#brevet-map").textContent = "El mapa necesita conexión para cargar la cartografía.";
-    return;
-  }
-  state.markerLayer.clearLayers();
-  for (const territory of totals) {
-    const center = COMMUNITY_CENTERS[territory.name];
-    if (!center) continue;
-    const marker = window.L.circleMarker(center, { radius: 8 + Math.sqrt(territory.events.length) * 2.2, color: "#12372a", weight: 2, fillColor: "#efc76a", fillOpacity: .9 });
-    marker.bindTooltip(`<strong>${territory.name}</strong><br>${territory.events.length} brevets · ${territory.clubs.length} clubes`);
-    marker.on("click", () => { el.territory.value = territory.name; applyFilters(); switchView("table"); });
-    marker.addTo(state.markerLayer);
-  }
-}
-
 function render() {
   renderTable();
   renderCalendar();
   renderClubs();
-  renderMap();
   updateResultCount();
 }
 
 function updateResultCount() {
-  if (["home", "guide"].includes(state.view)) el.count.textContent = "Calendario oficial 2027";
+  if (state.view === "home") el.count.textContent = "Calendario oficial 2027";
   else if (state.view === "clubs") el.count.textContent = `${state.filteredClubs.length} ${state.filteredClubs.length === 1 ? "club" : "clubes"}`;
-  else if (state.view === "territories") el.count.textContent = `${state.territories.length} territorios`;
   else el.count.textContent = `${state.filtered.length} ${state.filtered.length === 1 ? "brevet" : "brevets"}`;
 }
 
@@ -354,12 +298,11 @@ function switchView(view, persist = true, pushHistory = true) {
     panel.classList.toggle("active", selected);
     panel.hidden = !selected;
   });
-  const eventView = ["table", "calendar", "map"].includes(view);
+  const eventView = ["table", "calendar"].includes(view);
   el.workspace.classList.toggle("event-mode", eventView);
   el.workspace.classList.toggle("clubs-mode", view === "clubs");
-  el.workspace.classList.toggle("content-mode", ["home", "territories", "guide"].includes(view));
+  el.workspace.classList.toggle("content-mode", view === "home");
   el.search.placeholder = view === "clubs" ? "Buscar club o localidad" : "Buscar club o población";
-  if (view === "map") setTimeout(() => { initMap(); renderMap(); state.map?.invalidateSize(); }, 0);
   updateResultCount();
 }
 
@@ -372,14 +315,12 @@ async function init() {
     state.filtered = [...state.events];
     state.clubs = aggregateClubs(state.events);
     state.filteredClubs = [...state.clubs];
-    state.territories = aggregateTerritories(state.events);
     state.month = Math.max(0, Number(state.events[0].date.slice(5, 7)) - 1);
     el.eventTotal.textContent = state.events.length;
     el.clubTotal.textContent = state.clubs.length;
     el.monthTotal.textContent = new Set(state.events.map((event) => event.date.slice(5, 7))).size;
     fillControls();
-    renderUpcoming();
-    renderTerritories();
+    renderHomeDirectories();
     render();
     let savedView = "home";
     try { savedView = localStorage.getItem("brevets-2027-view") || "home"; } catch { /* no disponible */ }
@@ -400,11 +341,10 @@ document.querySelectorAll("[data-go-view]").forEach((button) => button.addEventL
 el.form.addEventListener("input", applyFilters);
 el.form.addEventListener("change", applyFilters);
 el.form.addEventListener("reset", () => setTimeout(applyFilters));
-el.quickSearchForm.addEventListener("submit", (event) => { event.preventDefault(); el.search.value = el.quickSearch.value.trim(); applyFilters(); switchView("table"); });
 el.calendarMonth.addEventListener("change", () => { state.month = Number(el.calendarMonth.value); el.month.value = String(state.month + 1).padStart(2, "0"); applyFilters(); });
 el.previousMonth.addEventListener("click", () => { if (state.month > 0) { state.month -= 1; el.month.value = String(state.month + 1).padStart(2, "0"); applyFilters(); } });
 el.nextMonth.addEventListener("click", () => { if (state.month < 11) { state.month += 1; el.month.value = String(state.month + 1).padStart(2, "0"); applyFilters(); } });
-window.addEventListener("resize", () => { renderCalendar(); state.map?.invalidateSize(); });
+window.addEventListener("resize", renderCalendar);
 window.addEventListener("popstate", (event) => {
   const historyView = event.state?.view || window.location.hash.slice(1) || "home";
   switchView(panels[historyView] ? historyView : "home", false, false);
