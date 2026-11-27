@@ -175,6 +175,9 @@ tbody tr:hover td { background: #edf1eb; }
 .home-shortcuts button:hover { border-color: var(--forest); background: white; }
 .home-shortcuts strong { color: var(--forest); font-size: .84rem; }
 .home-shortcuts span { color: var(--muted); font-size: .7rem; }
+.site-footer { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin: 0 34px 28px; padding: 14px 0 0; border-top: 1px solid var(--line); color: var(--muted); font-size: .67rem; }
+.site-footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
+.site-footer a { color: var(--forest-2); font-weight: 700; text-underline-offset: 3px; }
 
 .map-layout { display: grid; grid-template-columns: minmax(0, 1fr) 310px; width: 100%; height: 100%; }
 #brevet-map { min-height: 360px; background: #e8ece7; }
@@ -226,6 +229,9 @@ tbody tr:hover td { background: #edf1eb; }
 .rules-callout p:last-child { margin: 7px 0 0; color: #d8e4df; font-size: .73rem; line-height: 1.5; }
 .rules-callout .eyebrow { color: #efc76a; }
 .rules-callout a { flex: 0 0 auto; padding: 10px 13px; color: var(--forest); background: #efc76a; text-decoration: none; font-size: .7rem; font-weight: 800; }
+.rules-actions { display: flex; flex: 0 0 auto; gap: 8px; }
+.rules-callout .secondary-link { border: 1px solid rgba(255,255,255,.55); color: white; background: transparent; }
+.guide-footer { max-width: 998px; margin: 30px auto 0; }
 .faq details { border-bottom: 1px solid var(--line); background: white; }
 .faq details:first-of-type { margin-top: 13px; border-top: 1px solid var(--line); }
 .faq summary { padding: 15px 18px; cursor: pointer; font-size: .8rem; font-weight: 800; }
@@ -251,6 +257,7 @@ tbody tr:hover td { background: #edf1eb; }
   .upcoming-grid { grid-template-columns: repeat(2, 1fr); padding: 0 18px; }
   .home-section-heading { padding: 24px 18px 13px; }
   .home-shortcuts { grid-template-columns: 1fr; padding: 18px; }
+  .site-footer { align-items: flex-start; flex-direction: column; margin: 0 18px 22px; }
   .map-layout { grid-template-columns: 1fr; grid-template-rows: minmax(360px, 1fr) auto; overflow: auto; }
   .map-summary { border-top: 1px solid var(--line); border-left: 0; }
   .club-grid, .territory-grid { grid-template-columns: 1fr; padding: 12px; }
@@ -259,4 +266,6 @@ tbody tr:hover td { background: #edf1eb; }
   .distance-guide { grid-template-columns: 1fr; }
   .distance-guide div { border-right: 0; border-bottom: 1px solid var(--line); }
   .rules-callout { align-items: start; flex-direction: column; }
+  .rules-actions { flex-wrap: wrap; }
+  .guide-footer { margin: 28px 26px 0; }
 }
