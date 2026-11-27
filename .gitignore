@@ -18,6 +18,7 @@ build/
 coverage/
 tmp/
 *.log
+web/data/brevets_2027.json
 
 # Local operating-system files
 .DS_Store
